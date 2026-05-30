@@ -84,6 +84,12 @@
         - daemon reload
         - platform restart
 
+    - name: Régi redirect site eltávolítása (Certbot ütközés megelőzése)
+      file:
+        path: /etc/nginx/sites-enabled/kozkod-redirect
+        state: absent
+      notify: nginx reload
+
     - name: Nginx site konfig
       template:
         src: ../templates/nginx/platform.conf.j2

@@ -1,0 +1,75 @@
+---
+- name: Szerver alap konfiguráció
+  hosts: localhost
+  connection: local
+  become: true
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    - name: Rendszer frissítése
+      apt:
+        update_cache: yes
+        upgrade: dist
+        cache_valid_time: 3600
+
+    - name: Alap csomagok telepítése
+      apt:
+        name:
+          - curl
+          - wget
+          - git
+          - vim
+          - htop
+          - build-essential
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - unattended-upgrades
+          - fail2ban
+        state: present
+
+    - name: SSH port beállítása ({{ ssh_port }})
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Port '
+        line: "Port {{ ssh_port }}"
+        state: present
+      notify: ssh újraindítása
+
+    - name: Automatikus frissítések konfigurációja
+      copy:
+        dest: /etc/apt/apt.conf.d/99kozkod
+        content: |
+          Unattended-Upgrade::Automatic-Reboot "false";
+          Unattended-Upgrade::Mail "{{ ssl_email }}";
+
+    - name: Swap fájl létrehozása (4GB)
+      command: fallocate -l 4G /swapfile
+      args:
+        creates: /swapfile
+
+    - name: Swap jogosultság
+      file:
+        path: /swapfile
+        mode: '0600'
+
+    - name: Swap formázása
+      command: mkswap /swapfile
+      when: ansible_swaptotal_mb == 0
+
+    - name: Swap bekapcsolása
+      command: swapon /swapfile
+      when: ansible_swaptotal_mb == 0
+
+    - name: Swap fstab bejegyzés
+      lineinfile:
+        path: /etc/fstab
+        line: '/swapfile none swap sw 0 0'
+        state: present
+
+  handlers:
+    - name: ssh újraindítása
+      service:
+        name: ssh
+        state: restarted

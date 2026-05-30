@@ -1,0 +1,54 @@
+---
+- name: PostgreSQL telepítése
+  hosts: localhost
+  connection: local
+  become: true
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    - name: PostgreSQL telepítése
+      apt:
+        name:
+          - postgresql
+          - postgresql-contrib
+          - python3-psycopg2
+        state: present
+
+    - name: PostgreSQL elindítása
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+
+    - name: DB jelszó generálása
+      command: openssl rand -base64 24
+      register: db_password_result
+      args:
+        creates: /root/.kozkod_db_password
+
+    - name: Jelszó mentése
+      copy:
+        content: "{{ db_password_result.stdout }}"
+        dest: /root/.kozkod_db_password
+        mode: '0600'
+      when: db_password_result.changed
+
+    - name: Jelszó beolvasása
+      slurp:
+        src: /root/.kozkod_db_password
+      register: db_password_file
+
+    - name: DB user létrehozása
+      become_user: postgres
+      postgresql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password_file.content | b64decode | trim }}"
+        state: present
+
+    - name: Adatbázis létrehozása
+      become_user: postgres
+      postgresql_db:
+        name: "{{ db_name }}"
+        owner: "{{ db_user }}"
+        state: present

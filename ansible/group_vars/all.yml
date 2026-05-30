@@ -1,0 +1,14 @@
+---
+server_ip: "65.109.87.147"
+domain: "kozkod.hu"
+gitlab_domain: "gitlab.kozkod.hu"
+platform_domain: "platform.kozkod.hu"
+ssl_email: "info@kozkod.hu"
+
+db_name: "kozkod"
+db_user: "kozkod"
+
+repo_platform: "https://github.com/gyorgy-gulyas/kozkod_platform.git"
+platform_dir: "/opt/kozkod_platform"
+
+ssh_port: 2222

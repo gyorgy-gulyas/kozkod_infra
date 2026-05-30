@@ -1,0 +1,25 @@
+---
+- name: GitLab CE telepítése
+  hosts: localhost
+  connection: local
+  become: true
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    - name: GitLab repo script letöltése és futtatása
+      shell: curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | bash
+      args:
+        creates: /etc/apt/sources.list.d/gitlab_gitlab-ce.list
+
+    - name: GitLab CE telepítése
+      apt:
+        name: gitlab-ce
+        state: present
+      environment:
+        EXTERNAL_URL: "https://{{ gitlab_domain }}"
+
+    - name: GitLab konfigurálása és újrakonfigurálás
+      command: gitlab-ctl reconfigure
+      args:
+        creates: /var/opt/gitlab/bootstrapped

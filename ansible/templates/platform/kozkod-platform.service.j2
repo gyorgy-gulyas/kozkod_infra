@@ -1,0 +1,13 @@
+[Unit]
+Description=KözKód Platform Gunicorn
+After=network.target postgresql.service
+
+[Service]
+User=www-data
+WorkingDirectory={{ platform_dir }}/backend
+ExecStart={{ platform_dir }}/backend/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8001 --workers 3
+Restart=always
+EnvironmentFile={{ platform_dir }}/backend/.env
+
+[Install]
+WantedBy=multi-user.target

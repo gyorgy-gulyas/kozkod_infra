@@ -1,0 +1,63 @@
+---
+- name: Nginx + Certbot SSL telepítése
+  hosts: localhost
+  connection: local
+  become: true
+  vars_files:
+    - ../group_vars/all.yml
+
+  tasks:
+    - name: Nginx telepítése
+      apt:
+        name: nginx
+        state: present
+
+    - name: Certbot telepítése
+      apt:
+        name:
+          - certbot
+          - python3-certbot-nginx
+        state: present
+
+    - name: Default site letiltása
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: nginx reload
+
+    - name: HTTP → HTTPS redirect konfig
+      template:
+        src: ../templates/nginx/redirect.conf.j2
+        dest: /etc/nginx/sites-available/kozkod-redirect
+      notify: nginx reload
+
+    - name: Redirect site engedélyezése
+      file:
+        src: /etc/nginx/sites-available/kozkod-redirect
+        dest: /etc/nginx/sites-enabled/kozkod-redirect
+        state: link
+      notify: nginx reload
+
+    - name: Nginx elindítása
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: SSL tanúsítvány — kozkod.hu + platform
+      command: >
+        certbot --nginx
+        -d {{ domain }}
+        -d www.{{ domain }}
+        -d {{ platform_domain }}
+        --email {{ ssl_email }}
+        --agree-tos
+        --non-interactive
+      args:
+        creates: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+
+  handlers:
+    - name: nginx reload
+      service:
+        name: nginx
+        state: reloaded

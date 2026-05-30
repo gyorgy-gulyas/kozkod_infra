@@ -5,8 +5,8 @@ gitlab_domain: "gitlab.kozkod.hu"
 platform_domain: "platform.kozkod.hu"
 ssl_email: "info@kozkod.hu"
 
-db_name: "kozkod"
-db_user: "kozkod"
+db_name: "kozkod_platform"
+db_user: "kozkod_platform"
 
 repo_platform: "https://github.com/gyorgy-gulyas/kozkod_platform.git"
 platform_dir: "/opt/kozkod_platform"

@@ -18,8 +18,10 @@
         state: present
       environment:
         EXTERNAL_URL: "https://{{ gitlab_domain }}"
+        # GitLab saját beépített Nginx-et és Let's Encrypt-et használ
+        # A mi Nginx-ünk NEM kezeli a gitlab_domain-t
 
-    - name: GitLab konfigurálása és újrakonfigurálás
+    - name: GitLab konfigurálása
       command: gitlab-ctl reconfigure
       args:
         creates: /var/opt/gitlab/bootstrapped

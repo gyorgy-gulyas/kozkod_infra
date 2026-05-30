@@ -44,17 +44,15 @@
         state: started
         enabled: yes
 
-    - name: SSL tanúsítvány — kozkod.hu + platform
+    - name: SSL tanúsítvány — platform.kozkod.hu
       command: >
         certbot --nginx
-        -d {{ domain }}
-        -d www.{{ domain }}
         -d {{ platform_domain }}
         --email {{ ssl_email }}
         --agree-tos
         --non-interactive
       args:
-        creates: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+        creates: /etc/letsencrypt/live/{{ platform_domain }}/fullchain.pem
 
   handlers:
     - name: nginx reload

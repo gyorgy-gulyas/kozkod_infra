@@ -1,5 +1,5 @@
 server {
     listen 80;
-    server_name {{ domain }} www.{{ domain }} {{ platform_domain }};
+    server_name {{ platform_domain }};
     return 301 https://$host$request_uri;
 }

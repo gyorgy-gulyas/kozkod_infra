@@ -15,11 +15,19 @@
           - python3-venv
         state: present
 
+    - name: GitHub host key elfogadása
+      known_hosts:
+        name: github.com
+        key: "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
+        state: present
+
     - name: Platform repo klónozása
       git:
         repo: "{{ repo_platform }}"
         dest: "{{ platform_dir }}"
         update: yes
+        key_file: /root/.ssh/github_deploy
+        accept_newhostkey: yes
 
     - name: Python venv létrehozása
       command: python3 -m venv {{ platform_dir }}/backend/.venv

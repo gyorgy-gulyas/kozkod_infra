@@ -8,7 +8,7 @@ ssl_email: "info@kozkod.hu"
 db_name: "kozkod_platform"
 db_user: "kozkod_platform"
 
-repo_platform: "https://github.com/gyorgy-gulyas/kozkod_platform.git"
+repo_platform: "git@github.com:gyorgy-gulyas/kozkod_platform.git"
 platform_dir: "/opt/kozkod_platform"
 
 ssh_port: 2222

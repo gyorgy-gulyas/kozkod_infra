@@ -7,13 +7,29 @@
     - ../group_vars/all.yml
 
   tasks:
-    - name: Python és venv telepítése
+    - name: Python és venv függőségek telepítése
       apt:
         name:
           - python3
           - python3-pip
           - python3-venv
+          - python3-dev
+          - libpango-1.0-0
+          - libpangoft2-1.0-0
+          - libffi-dev
+          - libcairo2
         state: present
+
+    - name: GitHub SSH config deploy key-hez
+      copy:
+        dest: /root/.ssh/config
+        mode: '0600'
+        content: |
+          Host github.com
+            HostName github.com
+            User git
+            IdentityFile /root/.ssh/github_deploy
+            IdentitiesOnly yes
 
     - name: GitHub host key elfogadása
       known_hosts:
@@ -21,7 +37,7 @@
         key: "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
         state: present
 
-    - name: Platform repo klónozása
+    - name: Platform repo klónozása / frissítése
       git:
         repo: "{{ repo_platform }}"
         dest: "{{ platform_dir }}"
@@ -44,21 +60,43 @@
         name: gunicorn
         virtualenv: "{{ platform_dir }}/backend/.venv"
 
+    - name: Media mappák létrehozása
+      file:
+        path: "{{ platform_dir }}/backend/media/{{ item }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+      loop:
+        - avatars
+        - institution_logos
+        - certificates
+
+    - name: Static mappa létrehozása
+      file:
+        path: "{{ platform_dir }}/backend/static"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
     - name: DB jelszó beolvasása
       slurp:
         src: /root/.kozkod_db_password
       register: db_password_file
 
-    - name: Secret key generálása
+    - name: Secret key generálása (ha még nincs .env)
       command: python3 -c "import secrets; print(secrets.token_urlsafe(50))"
       register: secret_key_result
       args:
         creates: "{{ platform_dir }}/backend/.env"
 
-    - name: .env fájl létrehozása
+    - name: .env fájl létrehozása (ha még nincs)
       copy:
         dest: "{{ platform_dir }}/backend/.env"
-        mode: '0600'
+        owner: www-data
+        group: www-data
+        mode: '0640'
         content: |
           SECRET_KEY={{ secret_key_result.stdout }}
           DEBUG=False
@@ -69,12 +107,43 @@
           DB_HOST=localhost
           DB_PORT=5432
           CORS_ALLOWED_ORIGINS=https://{{ platform_domain }}
+          EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+          EMAIL_HOST={{ email_host }}
+          EMAIL_PORT={{ email_port }}
+          EMAIL_USE_TLS={{ email_use_tls }}
+          EMAIL_USE_SSL={{ email_use_ssl }}
+          EMAIL_HOST_USER={{ email_host_user }}
+          EMAIL_HOST_PASSWORD={{ email_host_password }}
+          DEFAULT_FROM_EMAIL={{ email_from }}
       when: secret_key_result.changed
+
+    - name: .env jogosultság javítása (ha már létezik)
+      file:
+        path: "{{ platform_dir }}/backend/.env"
+        owner: www-data
+        group: www-data
+        mode: '0640'
 
     - name: Django migrációk futtatása
       command: "{{ platform_dir }}/backend/.venv/bin/python manage.py migrate --settings=config.settings.production"
       args:
         chdir: "{{ platform_dir }}/backend"
+      become_user: www-data
+
+    - name: Static fájlok összegyűjtése
+      command: "{{ platform_dir }}/backend/.venv/bin/python manage.py collectstatic --noinput --settings=config.settings.production"
+      args:
+        chdir: "{{ platform_dir }}/backend"
+      become_user: www-data
+
+    - name: Staticfiles mappa jogosultsága
+      file:
+        path: "{{ platform_dir }}/backend/staticfiles"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        recurse: yes
 
     - name: Systemd service fájl
       template:
@@ -84,7 +153,7 @@
         - daemon reload
         - platform restart
 
-    - name: Régi redirect site eltávolítása (Certbot ütközés megelőzése)
+    - name: Régi redirect site eltávolítása
       file:
         path: /etc/nginx/sites-enabled/kozkod-redirect
         state: absent
@@ -103,7 +172,7 @@
         state: link
       notify: nginx reload
 
-    - name: Platform service engedélyezése
+    - name: Platform service engedélyezése és indítása
       service:
         name: kozkod-platform
         enabled: yes

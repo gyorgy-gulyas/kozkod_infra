@@ -12,3 +12,12 @@ repo_platform: "git@github.com:gyorgy-gulyas/kozkod_platform.git"
 platform_dir: "/opt/kozkod_platform"
 
 ssh_port: 2222
+
+# Email (SMTP) — jelszó: ansible-vault encrypt_string vagy extra-vars-ból
+email_host: "smtp.rackhost.hu"
+email_port: 587
+email_use_tls: "True"
+email_use_ssl: "False"
+email_host_user: "noreply@kozkod.hu"
+email_from: "KözKód Platform <noreply@kozkod.hu>"
+# email_host_password — NEM kerül ide, vault fájlból vagy --extra-vars-ból jön

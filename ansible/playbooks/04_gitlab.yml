@@ -15,6 +15,12 @@
       args:
         creates: /etc/apt/sources.list.d/gitlab_gitlab-ce.list
 
+    - name: /etc/gitlab/ mappa létrehozása (telepítés előtt)
+      file:
+        path: /etc/gitlab
+        state: directory
+        mode: '0755'
+
     - name: gitlab.rb előre létrehozása (telepítés előtt — postinstall script ezt olvassa)
       template:
         src: ../templates/gitlab/gitlab.rb.j2
@@ -79,8 +85,10 @@
         dest: /var/opt/gitlab/create_service_token.rb
         mode: '0644'
 
-    - name: GitLab service token létrehozása (mindig frissíti — 1 éves lejárat)
+    - name: GitLab service token létrehozása (idempotens — csak ha nincs még token fájl)
       command: gitlab-rails runner /var/opt/gitlab/create_service_token.rb
+      args:
+        creates: /tmp/service_token.txt
       register: token_created
 
     - name: Service token beolvasása

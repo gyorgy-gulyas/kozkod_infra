@@ -1,5 +1,5 @@
 ---
-- name: GitLab CE telepítése
+- name: GitLab CE telepítése és konfigurálása
   hosts: localhost
   connection: local
   become: true
@@ -8,88 +8,55 @@
 
   tasks:
 
-    # ── 1. GitLab CE csomag telepítése ─────────────────────────────────────────
+    # ── 1. Csomag telepítése ────────────────────────────────────────────────────
 
     - name: GitLab apt repo hozzáadása
       shell: curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | bash
       args:
         creates: /etc/apt/sources.list.d/gitlab_gitlab-ce.list
 
-    - name: GitLab CE telepítése (saját Nginx nélkül)
-      apt:
-        name: gitlab-ce
-        state: present
-      environment:
-        EXTERNAL_URL: "https://{{ gitlab_domain }}"
-
-    # ── 2. GitLab konfigurálása ─────────────────────────────────────────────────
-
-    - name: GitLab konfiguráció (gitlab.rb)
-      copy:
+    - name: gitlab.rb előre létrehozása (telepítés előtt — postinstall script ezt olvassa)
+      template:
+        src: ../templates/gitlab/gitlab.rb.j2
         dest: /etc/gitlab/gitlab.rb
         mode: '0600'
-        content: |
-          external_url 'https://{{ gitlab_domain }}'
+        force: no
 
-          # Beépített Nginx kikapcsolva — a mi Nginx-ünk kezeli
-          nginx['enable'] = false
-          web_server['external_users'] = ['www-data']
+    - name: GitLab CE telepítése (EXTERNAL_URL env-vel, idempotens)
+      shell: EXTERNAL_URL="https://{{ gitlab_domain }}" apt-get install -y gitlab-ce
+      args:
+        creates: /opt/gitlab/embedded/bin/ruby
+      environment:
+        DEBIAN_FRONTEND: noninteractive
 
-          # GitLab Workhorse belső porton
-          gitlab_workhorse['listen_network'] = 'tcp'
-          gitlab_workhorse['listen_addr'] = '127.0.0.1:8181'
+    # ── 2. Konfiguráció alkalmazása ─────────────────────────────────────────────
 
-          # Biztonsági beállítások — csak platform hozhat létre usert
-          gitlab_rails['gitlab_signup_enabled'] = false
-          gitlab_rails['gitlab_default_can_create_group'] = false
+    - name: gitlab.rb végleges konfiguráció (mindig felülírja)
+      template:
+        src: ../templates/gitlab/gitlab.rb.j2
+        dest: /etc/gitlab/gitlab.rb
+        mode: '0600'
+      register: gitlab_rb_changed
 
-          # Web jelszavas belépés letiltva (platform API kezeli)
-          gitlab_rails['password_authentication_enabled_for_web'] = false
-          gitlab_rails['password_authentication_enabled_for_git'] = true
+    - name: GitLab reconfigure (ha konfig változott)
+      command: gitlab-ctl reconfigure
+      when: gitlab_rb_changed.changed
 
-          # Web IDE single origin fallback letiltás
-          gitlab_rails['vscode_web_ide_extensions_marketplace_check_timeout'] = 5
-          gitlab_rails['allow_local_requests_from_web_hooks_and_services'] = false
-
-          # Email
-          gitlab_rails['smtp_enable'] = true
-          gitlab_rails['smtp_address'] = '{{ email_host }}'
-          gitlab_rails['smtp_port'] = {{ email_port }}
-          gitlab_rails['smtp_user_name'] = '{{ email_host_user }}'
-          gitlab_rails['smtp_password'] = '{{ email_host_password }}'
-          gitlab_rails['smtp_domain'] = 'kozkod.hu'
-          gitlab_rails['smtp_authentication'] = 'login'
-          gitlab_rails['smtp_enable_starttls_auto'] = true
-          gitlab_rails['gitlab_email_from'] = '{{ email_host_user }}'
-          gitlab_rails['gitlab_email_reply_to'] = '{{ email_host_user }}'
-
-          # Időzóna
-          gitlab_rails['time_zone'] = 'Europe/Budapest'
-
-          # Backup
-          gitlab_rails['backup_keep_time'] = 604800
-
-          # Let's Encrypt kikapcsolva (mi kezeljük certbot-tal)
-          letsencrypt['enable'] = false
-      notify: gitlab reconfigure
-
-    - name: GitLab reconfigure futtatása
+    - name: GitLab reconfigure (első telepítésnél mindig)
       command: gitlab-ctl reconfigure
       args:
         creates: /var/opt/gitlab/bootstrapped
 
-    # ── 3. SSL cert a gitlab domain-re ─────────────────────────────────────────
+    # ── 3. SSL cert ─────────────────────────────────────────────────────────────
 
     - name: Certbot cert igénylése gitlab.kozkod.hu-ra
       command: >
-        certbot certonly --nginx
-        --non-interactive --agree-tos
-        --email {{ ssl_email }}
-        -d {{ gitlab_domain }}
+        certbot certonly --nginx --non-interactive --agree-tos
+        --email {{ ssl_email }} -d {{ gitlab_domain }}
       args:
         creates: /etc/letsencrypt/live/{{ gitlab_domain }}/fullchain.pem
 
-    # ── 4. Nginx konfig a gitlab domain-re ─────────────────────────────────────
+    # ── 4. Nginx konfig ─────────────────────────────────────────────────────────
 
     - name: Nginx konfig gitlab.kozkod.hu-ra
       template:
@@ -104,10 +71,55 @@
         state: link
       notify: nginx reload
 
-  handlers:
-    - name: gitlab reconfigure
-      command: gitlab-ctl reconfigure
+    # ── 5. Service account token ────────────────────────────────────────────────
 
+    - name: Service token Ruby script másolása
+      template:
+        src: ../templates/gitlab/create_service_token.rb.j2
+        dest: /tmp/create_service_token.rb
+        mode: '0700'
+
+    - name: GitLab service token létrehozása (idempotens)
+      command: gitlab-rails runner /tmp/create_service_token.rb
+      args:
+        creates: /tmp/gitlab_service_token
+      register: token_created
+
+    - name: Service token beolvasása
+      slurp:
+        src: /tmp/gitlab_service_token
+      register: service_token_file
+
+    - name: GITLAB_SERVICE_TOKEN hozzáadása platform .env-hez
+      lineinfile:
+        path: "{{ platform_dir }}/backend/.env"
+        regexp: '^GITLAB_SERVICE_TOKEN='
+        line: "GITLAB_SERVICE_TOKEN={{ service_token_file.content | b64decode | trim }}"
+        owner: www-data
+        group: www-data
+
+    - name: GITLAB_URL hozzáadása platform .env-hez
+      lineinfile:
+        path: "{{ platform_dir }}/backend/.env"
+        regexp: '^GITLAB_URL='
+        line: "GITLAB_URL=https://{{ gitlab_domain }}"
+        owner: www-data
+        group: www-data
+
+    - name: Platform service újraindítása (token frissült)
+      service:
+        name: kozkod-platform
+        state: restarted
+      when: token_created.changed
+
+    - name: Temp fájlok törlése
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/create_service_token.rb
+
+  handlers:
     - name: nginx reload
       service:
         name: nginx

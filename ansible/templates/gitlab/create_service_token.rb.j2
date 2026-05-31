@@ -1,0 +1,16 @@
+# KözKód platform service account token létrehozása
+# Idempotens: csak akkor hoz létre új tokent, ha még nem létezik
+
+token = PersonalAccessToken.find_by(name: 'kozkod-platform-service', revoked: false)
+
+unless token
+  user = User.find_by(username: 'root')
+  token = PersonalAccessToken.create!(
+    user: user,
+    name: 'kozkod-platform-service',
+    scopes: ['api', 'read_user', 'sudo'],
+    expires_at: nil
+  )
+end
+
+File.write('/tmp/gitlab_service_token', token.token)

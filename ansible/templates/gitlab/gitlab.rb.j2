@@ -33,6 +33,19 @@ gitlab_rails['smtp_enable_starttls_auto'] = true
 gitlab_rails['gitlab_email_from'] = '{{ email_host_user }}'
 gitlab_rails['gitlab_email_reply_to'] = '{{ email_host_user }}'
 
+# ── Letiltott funkciók (most nem kell — forrás tárolás a fókusz) ──────────────
+# Container Registry — Nexus fogja kiváltani majd
+registry['enable'] = false
+
+# GitLab Pages — statikus site hosting, nem kell most
+gitlab_pages['enable'] = false
+
+# Package Registry (npm, Maven, PyPI stb.) — Nexus fogja kezelni majd
+gitlab_rails['packages_enabled'] = false
+
+# CI/CD runner — nincs runner beállítva, job-ok nem futnak (pipeline config megmarad)
+# Runner hozzáadása: gitlab-runner register ... (külön lépés majd)
+
 # ── Egyéb ─────────────────────────────────────────────────────────────────────
 gitlab_rails['time_zone'] = 'Europe/Budapest'
 gitlab_rails['backup_keep_time'] = 604800

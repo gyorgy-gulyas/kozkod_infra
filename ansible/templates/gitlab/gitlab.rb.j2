@@ -33,9 +33,12 @@ gitlab_rails['smtp_enable_starttls_auto'] = true
 gitlab_rails['gitlab_email_from'] = '{{ email_host_user }}'
 gitlab_rails['gitlab_email_reply_to'] = '{{ email_host_user }}'
 
-# ── Letiltott funkciók (admin UI-ban kikapcsolva, nem gitlab.rb-ben) ───────────
-# Container Registry, Pages, Package Registry — admin területen tiltjuk le
-# A gitlab.rb-beli letiltás cinc-client deadlockot okoz GitLab 19-ben
+# ── Letiltott komponensek ─────────────────────────────────────────────────────
+# Alertmanager — nem szükséges, letiltva (timeout okoz reconfigure-nál)
+alertmanager['enable'] = false
+
+# Container Registry, Pages, Package Registry — admin UI-ban tiltjuk le
+# FONTOS: gitlab.rb-beli letiltásuk cinc-client deadlockot okoz GitLab 19-ben
 
 # ── Egyéb ─────────────────────────────────────────────────────────────────────
 gitlab_rails['time_zone'] = 'Europe/Budapest'

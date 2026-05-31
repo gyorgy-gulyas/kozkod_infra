@@ -140,6 +140,24 @@
         path: /var/opt/gitlab/create_service_token.rb
         state: absent
 
+    # ── 7. OAuth SSO credentialek ───────────────────────────────────────────────
+
+    - name: GITLAB_OAUTH_CLIENT_ID hozzáadása platform .env-hez
+      lineinfile:
+        path: "{{ platform_dir }}/backend/.env"
+        regexp: '^GITLAB_OAUTH_CLIENT_ID='
+        line: "GITLAB_OAUTH_CLIENT_ID={{ gitlab_oauth_client_id }}"
+        owner: www-data
+        group: www-data
+
+    - name: GITLAB_OAUTH_CLIENT_SECRET hozzáadása platform .env-hez
+      lineinfile:
+        path: "{{ platform_dir }}/backend/.env"
+        regexp: '^GITLAB_OAUTH_CLIENT_SECRET='
+        line: "GITLAB_OAUTH_CLIENT_SECRET={{ gitlab_oauth_client_secret }}"
+        owner: www-data
+        group: www-data
+
   handlers:
     - name: nginx reload
       service:

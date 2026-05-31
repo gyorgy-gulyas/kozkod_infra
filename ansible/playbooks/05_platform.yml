@@ -130,6 +130,13 @@
         chdir: "{{ platform_dir }}/backend"
       become_user: www-data
 
+    - name: GitLab OAuth Application regisztrálása (idempotens)
+      command: "{{ platform_dir }}/backend/.venv/bin/python manage.py register_gitlab_oauth --settings=config.settings.production"
+      args:
+        chdir: "{{ platform_dir }}/backend"
+      become_user: www-data
+      ignore_errors: yes
+
     - name: Static fájlok összegyűjtése
       command: "{{ platform_dir }}/backend/.venv/bin/python manage.py collectstatic --noinput --settings=config.settings.production"
       args:

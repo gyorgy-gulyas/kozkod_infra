@@ -21,3 +21,7 @@ email_use_ssl: "False"
 email_host_user: "noreply@kozkod.hu"
 email_from: "KözKód Platform <noreply@kozkod.hu>"
 # email_host_password — NEM kerül ide, vault fájlból vagy --extra-vars-ból jön
+
+# GitLab OAuth SSO — jelszó/secret: --extra-vars-ból jön
+gitlab_oauth_client_id: "gitlab-kozkod-sso"
+# gitlab_oauth_client_secret — NEM kerül ide, --extra-vars-ból jön

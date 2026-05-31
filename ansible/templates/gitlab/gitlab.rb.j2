@@ -17,9 +17,46 @@ gitlab_workhorse['listen_addr'] = '127.0.0.1:8181'
 gitlab_rails['gitlab_signup_enabled'] = false
 gitlab_rails['gitlab_default_can_create_group'] = false
 
-# Web belépés letiltva — a platform impersonation token-t ad Git műveletekhez
+# Jelszavas web belépés letiltva — kizárólag OAuth SSO-n keresztül
 gitlab_rails['password_authentication_enabled_for_web'] = false
 gitlab_rails['password_authentication_enabled_for_git'] = true
+
+# ── OAuth2 SSO (KözKód Platform IdP) ─────────────────────────────────────────
+gitlab_rails['omniauth_enabled'] = true
+gitlab_rails['omniauth_allow_single_sign_on'] = ['oauth2_generic']
+gitlab_rails['omniauth_auto_sign_in_with_provider'] = 'oauth2_generic'
+gitlab_rails['omniauth_block_auto_created_users'] = false
+gitlab_rails['omniauth_auto_link_user'] = ['oauth2_generic']
+gitlab_rails['omniauth_sync_profile_attributes'] = ['email', 'name']
+
+gitlab_rails['omniauth_providers'] = [
+  {
+    name: 'oauth2_generic',
+    app_id: '{{ gitlab_oauth_client_id }}',
+    app_secret: '{{ gitlab_oauth_client_secret }}',
+    args: {
+      client_options: {
+        site: 'https://{{ platform_domain }}',
+        user_info_url: '/oauth/userinfo/',
+        authorize_url: '/oauth/authorize/',
+        token_url: '/oauth/token/',
+      },
+      user_response_structure: {
+        root_path: [],
+        id_path: ['id'],
+        attributes: {
+          email: 'email',
+          name: 'name',
+          nickname: 'username',
+        }
+      },
+      authorize_params: {
+        scope: 'read'
+      },
+      strategy_class: 'OmniAuth::Strategies::OAuth2Generic',
+    }
+  }
+]
 
 # ── Email ─────────────────────────────────────────────────────────────────────
 gitlab_rails['smtp_enable'] = true

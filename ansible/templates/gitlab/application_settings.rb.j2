@@ -20,7 +20,11 @@ s.restricted_visibility_levels = [Gitlab::VisibilityLevel::PUBLIC]
 # Külső import letiltása
 s.import_sources = []
 
+# Főoldal redirect — bejelentkezés nélküli látogatók a platformra kerülnek
+s.home_page_url = 'https://{{ platform_domain }}'
+
 s.save!
 puts 'ApplicationSetting mentve'
 puts "signup_enabled: #{s.signup_enabled}"
+puts "home_page_url: #{s.home_page_url}"
 puts "default_project_visibility: #{s.default_project_visibility}"

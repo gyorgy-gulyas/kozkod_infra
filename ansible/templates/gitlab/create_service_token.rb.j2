@@ -13,4 +13,4 @@ unless token
   )
 end
 
-File.write('/tmp/gitlab_service_token', token.token)
+File.write('/var/opt/gitlab/service_token.txt', token.token)

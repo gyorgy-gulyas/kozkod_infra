@@ -73,21 +73,21 @@
 
     # ── 5. Service account token ────────────────────────────────────────────────
 
-    - name: Service token Ruby script másolása
+    - name: Service token Ruby script másolása (gitlab-accessible path)
       template:
         src: ../templates/gitlab/create_service_token.rb.j2
-        dest: /tmp/create_service_token.rb
-        mode: '0700'
+        dest: /var/opt/gitlab/create_service_token.rb
+        mode: '0644'
 
     - name: GitLab service token létrehozása (idempotens)
-      command: gitlab-rails runner /tmp/create_service_token.rb
+      command: gitlab-rails runner /var/opt/gitlab/create_service_token.rb
       args:
-        creates: /tmp/gitlab_service_token
+        creates: /var/opt/gitlab/service_token.txt
       register: token_created
 
     - name: Service token beolvasása
       slurp:
-        src: /tmp/gitlab_service_token
+        src: /var/opt/gitlab/service_token.txt
       register: service_token_file
 
     - name: GITLAB_SERVICE_TOKEN hozzáadása platform .env-hez
@@ -112,12 +112,10 @@
         state: restarted
       when: token_created.changed
 
-    - name: Temp fájlok törlése
+    - name: Script törlése (token megvan)
       file:
-        path: "{{ item }}"
+        path: /var/opt/gitlab/create_service_token.rb
         state: absent
-      loop:
-        - /tmp/create_service_token.rb
 
   handlers:
     - name: nginx reload

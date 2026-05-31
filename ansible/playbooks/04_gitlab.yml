@@ -43,10 +43,13 @@
           gitlab_rails['gitlab_signup_enabled'] = false
           gitlab_rails['gitlab_default_can_create_group'] = false
 
-          # Web jelszavas belépés letiltva (platform SSO lesz)
-          gitlab_rails['omniauth_allow_single_sign_on'] = false
+          # Web jelszavas belépés letiltva (platform API kezeli)
           gitlab_rails['password_authentication_enabled_for_web'] = false
           gitlab_rails['password_authentication_enabled_for_git'] = true
+
+          # Web IDE single origin fallback letiltás
+          gitlab_rails['vscode_web_ide_extensions_marketplace_check_timeout'] = 5
+          gitlab_rails['allow_local_requests_from_web_hooks_and_services'] = false
 
           # Email
           gitlab_rails['smtp_enable'] = true

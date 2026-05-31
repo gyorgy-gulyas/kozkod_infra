@@ -1,0 +1,26 @@
+# GitLab ApplicationSetting értékek beállítása
+# Idempotens — minden futáskor frissíti
+
+s = ApplicationSetting.current_without_cache
+
+# Signup letiltás — csak platform API hozhat létre usert
+s.signup_enabled = false
+
+# Max token lifetime 365 napra
+s.max_personal_access_token_lifetime = 365
+
+# Alapértelmezett láthatóság: privát
+s.default_project_visibility = Gitlab::VisibilityLevel::PRIVATE
+s.default_group_visibility = Gitlab::VisibilityLevel::PRIVATE
+s.default_snippet_visibility = Gitlab::VisibilityLevel::PRIVATE
+
+# Publikus láthatóság tiltása
+s.restricted_visibility_levels = [Gitlab::VisibilityLevel::PUBLIC]
+
+# Külső import letiltása
+s.import_sources = []
+
+s.save!
+puts 'ApplicationSetting mentve'
+puts "signup_enabled: #{s.signup_enabled}"
+puts "default_project_visibility: #{s.default_project_visibility}"

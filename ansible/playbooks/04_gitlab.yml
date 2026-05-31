@@ -77,7 +77,24 @@
         state: link
       notify: nginx reload
 
-    # ── 5. Service account token ────────────────────────────────────────────────
+    # ── 5. ApplicationSetting értékek ──────────────────────────────────────────
+
+    - name: ApplicationSetting script másolása
+      template:
+        src: ../templates/gitlab/application_settings.rb.j2
+        dest: /var/opt/gitlab/application_settings.rb
+        mode: '0644'
+
+    - name: GitLab ApplicationSetting beállítása
+      command: gitlab-rails runner /var/opt/gitlab/application_settings.rb
+      register: appsetting_result
+
+    - name: ApplicationSetting script törlése
+      file:
+        path: /var/opt/gitlab/application_settings.rb
+        state: absent
+
+    # ── 6. Service account token ────────────────────────────────────────────────
 
     - name: Service token Ruby script másolása
       template:

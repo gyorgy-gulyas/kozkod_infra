@@ -73,21 +73,19 @@
 
     # ── 5. Service account token ────────────────────────────────────────────────
 
-    - name: Service token Ruby script másolása (gitlab-accessible path)
+    - name: Service token Ruby script másolása
       template:
         src: ../templates/gitlab/create_service_token.rb.j2
         dest: /var/opt/gitlab/create_service_token.rb
         mode: '0644'
 
-    - name: GitLab service token létrehozása (idempotens)
+    - name: GitLab service token létrehozása (mindig frissíti — 1 éves lejárat)
       command: gitlab-rails runner /var/opt/gitlab/create_service_token.rb
-      args:
-        creates: /var/opt/gitlab/service_token.txt
       register: token_created
 
     - name: Service token beolvasása
       slurp:
-        src: /var/opt/gitlab/service_token.txt
+        src: /tmp/service_token.txt
       register: service_token_file
 
     - name: GITLAB_SERVICE_TOKEN hozzáadása platform .env-hez

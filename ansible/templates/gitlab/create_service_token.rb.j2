@@ -1,16 +1,18 @@
 # KözKód platform service account token létrehozása
-# Idempotens: csak akkor hoz létre új tokent, ha még nem létezik
+# Megjegyzés: GitLab 16+ digest-ként tárolja a tokent, raw érték csak create! után
+# Megjegyzés: GitLab max 1 éves tokent engedélyez (expires_at kötelező)
+# Megjegyzés: output /tmp/-be kerül (git user write jog)
 
-token = PersonalAccessToken.find_by(name: 'kozkod-platform-service', revoked: false)
+# Régi tokenek visszavonása
+PersonalAccessToken.where(name: 'kozkod-platform-service').update_all(revoked: true)
 
-unless token
-  user = User.find_by(username: 'root')
-  token = PersonalAccessToken.create!(
-    user: user,
-    name: 'kozkod-platform-service',
-    scopes: ['api', 'read_user', 'sudo'],
-    expires_at: nil
-  )
-end
+user = User.find_by(username: 'root')
+token = PersonalAccessToken.create!(
+  user: user,
+  name: 'kozkod-platform-service',
+  scopes: ['api', 'read_user', 'sudo'],
+  expires_at: 364.days.from_now
+)
 
-File.write('/var/opt/gitlab/service_token.txt', token.token)
+# Raw token csak közvetlenül create! után érhető el
+File.write('/tmp/service_token.txt', token.token)

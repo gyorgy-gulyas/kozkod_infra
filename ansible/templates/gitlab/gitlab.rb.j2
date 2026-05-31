@@ -16,6 +16,7 @@ gitlab_workhorse['listen_addr'] = '127.0.0.1:8181'
 # Csak a platform API hozhat létre felhasználót
 gitlab_rails['gitlab_signup_enabled'] = false
 gitlab_rails['gitlab_default_can_create_group'] = false
+gitlab_rails['gitlab_default_projects_limit'] = 0
 
 # Jelszavas web belépés letiltva — kizárólag OAuth SSO-n keresztül
 gitlab_rails['password_authentication_enabled_for_web'] = false

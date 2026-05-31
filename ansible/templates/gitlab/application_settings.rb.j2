@@ -14,8 +14,8 @@ s.default_project_visibility = Gitlab::VisibilityLevel::PRIVATE
 s.default_group_visibility = Gitlab::VisibilityLevel::PRIVATE
 s.default_snippet_visibility = Gitlab::VisibilityLevel::PRIVATE
 
-# Publikus láthatóság tiltása
-s.restricted_visibility_levels = [Gitlab::VisibilityLevel::PUBLIC]
+# Publikus és belső láthatóság tiltása — csak privát projektek lehetségesek
+s.restricted_visibility_levels = [Gitlab::VisibilityLevel::PUBLIC, Gitlab::VisibilityLevel::INTERNAL]
 
 # Külső import letiltása
 s.import_sources = []
@@ -23,8 +23,19 @@ s.import_sources = []
 # Főoldal: üres = GitLab a saját sign_in oldalára irányít, ahol az OmniAuth auto-sign-in fut
 s.home_page_url = ''
 
+# Projekt létrehozás tiltása — a platform kezeli a GitLab group/repo struktúrát
+s.default_projects_limit = 0
+
+# Új userek alapból external — csak a hozzájuk rendelt projekteket látják
+s.user_default_external = true
+
 s.save!
 puts 'ApplicationSetting mentve'
-puts "signup_enabled: #{s.signup_enabled}"
-puts "home_page_url: #{s.home_page_url}"
-puts "default_project_visibility: #{s.default_project_visibility}"
+puts "default_projects_limit: #{s.default_projects_limit}"
+puts "user_default_external: #{s.user_default_external}"
+puts "restricted_visibility_levels: #{s.restricted_visibility_levels}"
+
+# Meglévő nem-admin userek frissítése (idempotens)
+updated = User.where(admin: false).where('projects_limit != 0 OR external = false').count
+User.where(admin: false).update_all(projects_limit: 0, external: true)
+puts "Meglévő userek frissítve: #{updated}"

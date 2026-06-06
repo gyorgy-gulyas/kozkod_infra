@@ -11,6 +11,9 @@ server {
     ssl_certificate /etc/letsencrypt/live/{{ platform_domain }}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/{{ platform_domain }}/privkey.pem;
 
+    # Feltöltések (cikk-képek, logók) — az alap 1M kevés
+    client_max_body_size 25m;
+
     location /static/ {
         alias {{ platform_dir }}/backend/staticfiles/;
         expires 30d;
